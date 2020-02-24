@@ -1,12 +1,12 @@
 from fastapi import FastAPI
-from typing import List  # ネストされたBodyを定義するために必要
-from starlette.middleware.cors import CORSMiddleware  # CORSを回避するために必要
-from db import session  # DBと接続するためのセッション
-from model import UserTable, User  # 今回使うモデルをインポート
+from typing import List 
+from starlette.middleware.cors import CORSMiddleware  
+from db import session 
+from model import ArticleTable, Article, PostArticle, PutArticle, User, UserTable 
+from datetime import datetime
 
 app = FastAPI()
 
-# CORSを回避するために設定
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -15,39 +15,58 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ----------APIの定義------------
-# テーブルにいる全ユーザ情報を取得 GET
-@app.get("/users")
-def read_users():
-    users = session.query(UserTable).all()
-    return users
+@app.get("/articles")
+def read_articles():
+    articles = session.query(ArticleTable).all()
+    return articles
+ 
+@app.get("/articles/{article_id}")
+def read_article(article_id: int):
+    article = session.query(ArticleTable).filter(ArticleTable.id == article_id).first()
+    return article
 
-# idにマッチするユーザ情報を取得 GET
-@app.get("/users/{user_id}")
-def read_user(user_id: int):
-    user = session.query(UserTable).\
-        filter(UserTable.id == user_id).first()
-    return user
-
-# ユーザ情報を登録 POST
-@app.post("/user")
-# クエリでnameとstrを受け取る
-# /user?name="三郎"&age=10
-async def create_user(name: str, age: int):
-    user = UserTable()
-    user.name = name
-    user.age = age
-    session.add(user)
+@app.post("/articles")
+async def create_article(article:PostArticle):
+    article_db = ArticleTable()
+    article_db.name = article.name
+    article_db.title = article.title
+    article_db.content = article.content
+    article_db.date = datetime.now()
+    session.add(article_db)
     session.commit()
+    return article_db
 
-# 複数のユーザ情報を更新 PUT
-@app.put("/users")
-# modelで定義したUserモデルのリクエストbodyをリストに入れた形で受け取る
-# users=[{"id": 1, "name": "一郎", "age": 16},{"id": 2, "name": "二郎", "age": 20}]
-async def update_users(users: List[User]):
-    for new_user in users:
-        user = session.query(UserTable).\
-            filter(UserTable.id == new_user.id).first()
-        user.name = new_user.name
-        user.age = new_user.age
-        session.commit()
+@app.put("/articles")
+async def update_articles(article:PutArticle):
+    article_db = session.query(ArticleTable).filter(ArticleTable.id == article.id).first()
+    article_db.title = article.title
+    article_db.content = article.content
+    article_db.date = datetime.now()
+    session.commit()
+    return article_db
+
+@app.post("/articles/{article_id}")
+async def delete_article(article_id: int):
+    article_db = session.query(ArticleTable).filter(ArticleTable.id == article_id).first()
+    session.delete(article_db)
+    session.commit()
+    return article_db 
+
+@app.post("/user")
+async def create_user(user: User):
+    user_db = UserTable()
+    user_db.name = user.name
+    user_db.password = user.password
+    session.add(user_db)
+    session.commit()
+    return user_db
+
+@app.get("/users")
+async def login_check(name: str, password: str):
+    user_db = session.query(UserTable).filter(UserTable.name == name).filter(UserTable.password == password).first()
+    return user_db
+
+@app.get("/user/")
+async def login_check():
+    user_db = session.query(UserTable).all()
+    return user_db

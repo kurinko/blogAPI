@@ -1,30 +1,47 @@
-# -*- coding: utf-8 -*-
-# モデルの定義
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, DateTime
 from pydantic import BaseModel
 from db import Base
 from db import ENGINE
+from datetime import datetime
 
+class ArticleTable(Base):
+    __tablename__ = 'article'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(30), nullable=False)
+    title = Column(String(100))
+    content = Column(String(200))
+    date = Column(DateTime)
 
-# userテーブルのモデルUserTableを定義
 class UserTable(Base):
     __tablename__ = 'user'
     id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String(30), nullable=False)
-    age = Column(Integer)
+    name = Column(String(30))
+    password = Column(String(100))
 
-
-# POSTやPUTのとき受け取るRequest Bodyのモデルを定義
-class User(BaseModel):
+class Article(BaseModel):
     id: int
     name: str
-    age: int
+    title: str
+    content: str
+    date: datetime
+
+class PostArticle(BaseModel):
+    name: str
+    title: str
+    content: str   
+
+class PutArticle(BaseModel):
+    id: int
+    title: str
+    content: str
+
+class User(BaseModel):
+    name: str
+    password: str
 
 
 def main():
-    # テーブルが存在しなければ、テーブルを作成
     Base.metadata.create_all(bind=ENGINE)
-
 
 if __name__ == "__main__":
     main()
